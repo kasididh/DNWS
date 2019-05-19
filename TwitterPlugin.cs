@@ -206,6 +206,40 @@ namespace DNWS
             }
         }
 
+        public static bool CheckUser(string username)
+        {
+            using (var context = new TweetContext())
+            {
+                List<User> userlist = context.Users.Where(b => b.Name.Equals(username)).ToList();
+                if (userlist.Count == 1)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        public void DeleteUser(string username)
+        {
+            using (var context = new TweetContext())
+            {
+                List<User> userlist = context.Users.Where(b => b.Name.Equals(username)).ToList();
+                if (userlist.Count <= 0)
+                {
+                    throw new Exception("Not found");
+                }
+                List<User> followlist = context.Users.Where(b => true).Include(b => b.Following).ToList();
+                foreach (User temp in followlist)
+                {
+                    Twitter ntwitter = new Twitter(temp.Name);
+                    ntwitter.RemoveFollowing(userlist[0].Name);
+                }
+                context.Users.Remove(userlist[0]);
+                context.SaveChanges();
+            }
+        }
+
+
     }
     public class TwitterPlugin : IPlugin
     {
@@ -273,7 +307,7 @@ namespace DNWS
         }
 
 
-        public HTTPResponse GetResponse(HTTPRequest request)
+        public virtual HTTPResponse GetResponse(HTTPRequest request)
         {
             HTTPResponse response = new HTTPResponse(200);
             StringBuilder sb = new StringBuilder();
